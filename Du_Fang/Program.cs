@@ -20,7 +20,7 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = null;
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
-
+builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {

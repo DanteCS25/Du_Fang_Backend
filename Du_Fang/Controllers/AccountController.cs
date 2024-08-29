@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+using Du_Fang;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Du_Fang;
 
 namespace Du_Fang.Controllers
 {
@@ -14,10 +13,12 @@ namespace Du_Fang.Controllers
     public class AccountController : ControllerBase
     {
         private readonly AppDBContext _context;
+        private readonly IAccountService _accountService;
 
-        public AccountController(AppDBContext context)
+        public AccountController(AppDBContext context, IAccountService accountService)
         {
             _context = context;
+            _accountService = accountService;
         }
 
         // GET: api/Account
@@ -42,7 +43,6 @@ namespace Du_Fang.Controllers
         }
 
         // PUT: api/Account/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutAccount(int id, Account account)
         {
@@ -72,8 +72,12 @@ namespace Du_Fang.Controllers
             return NoContent();
         }
 
+        private bool AccountExists(int id)
+        {
+            throw new NotImplementedException();
+        }
+
         // POST: api/Account
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Account>> PostAccount(Account account)
         {
@@ -99,9 +103,145 @@ namespace Du_Fang.Controllers
             return NoContent();
         }
 
-        private bool AccountExists(int id)
+
+
+    //     // POST: api/Account/{id}/freeze
+    //     [HttpPut("{id}/freeze")]
+    //       public async Task FreezeAccount(int account)
+    // {
+
+    //     //get this account with id
+    //     if (account == null)
+    //     {
+    //         throw new ArgumentNullException(nameof(account));
+    //     }
+
+
+
+    //     // Implement the logic to freeze the account here
+    //     account.Active = false; // Example property to indicate the account is frozen
+
+    //     // Save changes to the database
+    //     await _context.SaveChangesAsync();
+    // }
+
+
+
+[HttpPut("{id}/freeze")]
+public async Task<IActionResult> FreezeAccount(int id)
+{
+    try
+    {
+        // Log the received ID
+        Console.WriteLine($"Received ID: {id}");
+
+        // Fetch the account with the provided ID
+        var account = await _context.Accounts.FindAsync(id);
+        
+        // Log the retrieved account details
+        if (account == null)
         {
-            return _context.Accounts.Any(e => e.AccountId == id);
+            Console.WriteLine($"Account with ID {id} not found.");
+            return NotFound($"Account with ID {id} not found.");
+        }
+
+        Console.WriteLine($"Account before freezing: {account}");
+
+        // Implement the logic to freeze the account here
+        account.Active = false; // Example property to indicate the account is frozen
+
+        // Save changes to the database
+        await _context.SaveChangesAsync();
+
+        // Log success message
+        Console.WriteLine($"Account with ID {id} has been successfully frozen.");
+
+        return Ok("Account frozen successfully.");
+    }
+    catch (Exception ex)
+    {
+        // Log error details
+        Console.WriteLine($"Error freezing account with ID {id}: {ex.Message}");
+        return StatusCode(500, $"An error occurred while freezing the account with ID {id}: {ex.Message}");
+    }
+}
+
+
+        // POST: api/Account/{id}/unfreeze
+        [HttpPut("{id}/unfreeze")]
+        public async Task<IActionResult> UnfreezeAccount(int id)
+        {
+            try
+            {
+                var account = await _context.Accounts.FindAsync(id);
+                if (account == null)
+                {
+                    return NotFound();
+                }
+
+                await _accountService.UnfreezeAccount(account);
+                return Ok("Account unfrozen successfully.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
+}
+
+public interface IAccountService
+{
+    Task FreezeAccount(Account account);
+    Task FreezeAccount(Du_Fang.Account account);
+    Task UnfreezeAccount(Account account);
+    Task UnfreezeAccount(Du_Fang.Account account);
+}
+
+public class AccountService : IAccountService
+{
+    private readonly AppDBContext _context;
+
+    public AccountService(AppDBContext context)
+    {
+        _context = context;
+    }
+
+    public async Task FreezeAccount(Account account)
+    {
+        if (account == null) throw new ArgumentNullException(nameof(account));
+        account.Active = false; // Set status as frozen
+        await _context.SaveChangesAsync();
+    }
+
+    public Task FreezeAccount(Du_Fang.Account account)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task UnfreezeAccount(Account account)
+    {
+        if (account == null) throw new ArgumentNullException(nameof(account));
+        account.Active = true; // Set status as active
+        await _context.SaveChangesAsync();
+    }
+
+    public Task UnfreezeAccount(Du_Fang.Account account)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+// Account Model
+
+public class Account
+{
+    public int AccountId { get; set; }
+    public bool Active { get; set; }
+}
+
+public enum AccountStatus
+{
+    Active,
+    Frozen
 }
